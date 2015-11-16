@@ -8,26 +8,55 @@
 
 import UIKit
 
-class PhotosCollectionViewController: UICollectionViewController {
-    var photos: [Photo]!
+class PhotosCollectionViewController: UICollectionViewController, UICollectionViewDelegateFlowLayout {
+    var photos = [Photo]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
         let api = InstagramAPI()
         api.loadPhotos(didLoadPhotos)
         // FILL ME IN
+        self.collectionView?.backgroundColor = UIColor.whiteColor()
+        collectionView!.collectionViewLayout = formatCells()
+        collectionView!.registerClass(PhotoCollectionCell.classForCoder(), forCellWithReuseIdentifier: "PhotoCollectionCell")
     }
-
-    /* 
-     * IMPLEMENT ANY COLLECTION VIEW DELEGATE METHODS YOU FIND NECESSARY
-     * Examples include cellForItemAtIndexPath, numberOfSections, etc.
-     */
     
-    /* Creates a session from a photo's url to download data to instantiate a UIImage. 
-       It then sets this as the imageView's image. */
+    /*
+    * IMPLEMENT ANY COLLECTION VIEW DELEGATE METHODS YOU FIND NECESSARY
+    * Examples include cellForItemAtIndexPath, numberOfSections, etc.
+    */
+    
+    
+    override func collectionView(collectionView: UICollectionView, cellForItemAtIndexPath indexPath: NSIndexPath) -> UICollectionViewCell {
+        let photo = collectionView.dequeueReusableCellWithReuseIdentifier("PhotoCollectionCell", forIndexPath: indexPath) as! PhotoCollectionCell
+        loadImageForCell(photos[indexPath.row], imageView: photo.pic)
+        return photo
+    }
+    
+    override func collectionView(collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        return photos.count
+    }
+    
+    override func collectionView(collectionView: UICollectionView, didSelectItemAtIndexPath indexPath: NSIndexPath) {
+        performSegueWithIdentifier("DetailView", sender: photos[indexPath.row])
+    }
+    
+    override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
+        let detailView = segue.destinationViewController as! PhotoCollectionDetailViewController
+        detailView.photo = sender as! Photo
+    }
+    
+    /* Creates a session from a photo's url to download data to instantiate a UIImage.
+    It then sets this as the imageView's image. */
     func loadImageForCell(photo: Photo, imageView: UIImageView) {
-        
+        let task = NSURLSession.sharedSession().dataTaskWithURL(NSURL(string: photo.url)!) {
+            (data: NSData?, response: NSURLResponse?, error: NSError?) -> Void in
+            if error == nil {
+                imageView.image = UIImage(data: data!)
+            }
+        }
+        task.resume()
     }
     
     /* Completion handler for API call. DO NOT CHANGE */
@@ -36,5 +65,13 @@ class PhotosCollectionViewController: UICollectionViewController {
         self.collectionView!.reloadData()
     }
     
+    func formatCells() -> UICollectionViewFlowLayout {
+        let layout = UICollectionViewFlowLayout()
+        layout.itemSize = CGSize(width: (view.bounds.size.width - 2) / 3, height: (view.bounds.size.width - 2) / 3)
+        layout.minimumInteritemSpacing = 1.0
+        layout.minimumLineSpacing = 1.0
+        layout.footerReferenceSize = CGSize(width: collectionView!.bounds.size.width, height: 100.0)
+        return layout
+    }
 }
 
